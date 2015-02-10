@@ -45,16 +45,21 @@ def runGaussian(x_train, x_test, y_train, y_test):
     return clf
 
 
-def reg_OLS(dataset, dep, xvars):
+def reg_OLS(dataset, dep, xvars, intercept):
     if (str(type(dataset)) == "<class 'pandas.core.frame.DataFrame'>"):
 
         # Creating x and y matrices
         try:
+            n = np.shape(data)[0]
+            k = np.size(xvars)
             y = dataset[dep]
             x = pd.DataFrame()
             for item in xvars:
                 x = x.append(dataset[item])
             x = x.T
+            if (intercept==1):
+                x['Intercept'] = np.ones(n)
+                k = k+1
         except:
             print 'Invalid variable names'
             return None
@@ -74,8 +79,6 @@ def reg_OLS(dataset, dep, xvars):
         try:
             error = y - np.dot(x, bhat)
             SSE = np.dot(error.T, error)
-            n = np.shape(data)[0]
-            k = np.size(xvars)
             sighat = SSE/(n-k)
             sd = np.dot(sighat, np.linalg.inv(xtx))
             stdErr = np.zeros(shape=(k,1))
@@ -103,7 +106,7 @@ def reg_OLS(dataset, dep, xvars):
             print 'Cannot calculate significance level'
             return None
 
-        return {"Covariates": xvars, "Coef": bhat, "StdErr": stdErr, "Tstat": tstat, "Pval": prob}
+        return {"Covariates": list(x.columns.values), "Coef": bhat, "StdErr": stdErr, "Tstat": tstat, "Pval": prob}
     else:
         print 'Data is not recognized as a Pandas Dataframe'
         return None
