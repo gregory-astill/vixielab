@@ -3,6 +3,8 @@ from sklearn.metrics import accuracy_score
 from sklearn.cross_validation import train_test_split
 import pandas as pd
 import numpy as np
+from __future__ import division
+from scipy import stats
 
 def dataprep(filespot, deplabel, testsize):
     try:
@@ -41,3 +43,67 @@ def runGaussian(x_train, x_test, y_train, y_test):
         print "Invalid Data Provided for Naive Bayes"
         return 0
     return clf
+
+
+def reg_OLS(dataset, dep, xvars):
+    if (str(type(dataset)) == "<class 'pandas.core.frame.DataFrame'>"):
+
+        # Creating x and y matrices
+        try:
+            y = dataset[dep]
+            x = pd.DataFrame()
+            for item in xvars:
+                x = x.append(dataset[item])
+            x = x.T
+        except:
+            print 'Invalid variable names'
+            return None
+
+        # Generating Beta coefficients
+        try:
+            xtx = np.dot(x.T, x)
+        except:
+            print 'Cannot calculate inner product of x'
+            return None
+        try:
+            bhat = np.dot(np.linalg.inv(xtx), np.dot(x.T, y))
+        except:
+            print 'Cannot calculate OLS coefficients'
+
+        # Generating Standard Errors
+        try:
+            error = y - np.dot(x, bhat)
+            SSE = np.dot(error.T, error)
+            n = np.shape(data)[0]
+            k = np.size(xvars)
+            sighat = SSE/(n-k)
+            sd = np.dot(sighat, np.linalg.inv(xtx))
+            stdErr = np.zeros(shape=(k,1))
+            for i in range(k):
+                stdErr[i] = np.sqrt(sd[i][i])
+        except:
+            print 'Cannot calculate coefficient standard errors'
+            return None
+
+        # Generating T-statistics
+        try:
+            tstat = np.zeros(shape=(k,1))
+            for i in range(k):
+                tstat[i] = bhat[i]/stdErr[i]
+        except:
+            print 'Cannot calculate T-statistics'
+            return None
+
+        # Calculate Significance of Covariates
+        try:
+            prob = np.zeros(shape=(k,1))
+            for i in range(k):
+                prob[i] = 1-stats.t.cdf(abs(tstat[i]), 181)
+        except:
+            print 'Cannot calculate significance level'
+            return None
+
+        return {"Covariates": xvars, "Coef": bhat, "StdErr": stdErr, "Tstat": tstat, "Pval": prob}
+    else:
+        print 'Data is not recognized as a Pandas Dataframe'
+        return None
